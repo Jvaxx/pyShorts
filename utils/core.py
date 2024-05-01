@@ -21,6 +21,10 @@ class Capture:
     :type name: str, optional
     :param time: The time to display on the illustrations. Defaults to 21:48
     :type time: str, optional
+    :param emoji_in_name: Is there an emoji in the name?
+    :type emoji_in_name: bool, optional
+    :param preset_options: The options of the preset, optional
+    :param draw: the drawing context, optional
     """
 
     def __init__(
@@ -32,7 +36,8 @@ class Capture:
             time: Optional[str] = '21:48',
             emoji_in_name: Optional[bool] = True,
             preset_options: Optional[Dict] = background_standard_options,
-            draw: Optional[ImageDraw.ImageDraw] = None
+            draw: Optional[ImageDraw.ImageDraw] = None,
+            message_area: Optional = None,
     ) -> None:
         self._base_path: PathLike = base
         self._avatar_path: PathLike = avatar
@@ -42,10 +47,12 @@ class Capture:
         self.emoji_in_name: bool = emoji_in_name
         self.preset_options: Dict = preset_options
         self.draw: ImageDraw.ImageDraw = draw
+
         self._new_draw: bool = False
         self.messages: List[MessageBox] = []
-        self._import_messages()
 
+        self._import_messages()
+        self.message_area: MessageArea = message_area
         self.canvas: Image.Image = Image.new('RGBA', (1080, 1920))
 
     def add_background(self) -> None:
@@ -93,17 +100,18 @@ class Capture:
                        font=background_standard_options['time_font'], anchor='ms')
         self._close_draw()
 
-    def add_messages(self) -> None:
+    def add_messages(self, scroll: Optional[float] = 1.0) -> None:
         """
         Print the already rendered messages on the canvas
         :return: None
         """
 
         y = self.preset_options['message_first_y']
-        for message in self.messages:
-            x = message.get_message_box_x(self.preset_options['message_x_margin'])
-            self.canvas.paste(message.canvas, (x, y), message.canvas)
-            y += message.box_size[1] + self.preset_options['message_y_margin']
+
+        if self.message_area is None:
+            self.message_area = MessageArea(self.messages, scroll, self.preset_options)
+
+        self.canvas.paste(self.message_area.canvas, (0, y), self.message_area.canvas)
 
     def _import_messages(self) -> None:
         """
@@ -157,8 +165,8 @@ class MessageBox:
         self.message_text: str = format_text_box(message_text, self.preset_options['message_max_width'],
                                                  self.preset_options['message_font'])
         self.text_size: Tuple[int, int] = getsize(self.message_text, font=self.preset_options['message_font'])
-        self.box_size: Tuple[int, int] = (self.text_size[0] + 2*self.preset_options['message_x_padding'],
-                                          self.text_size[1] + 2*self.preset_options['message_y_padding'])
+        self.box_size: Tuple[int, int] = (self.text_size[0] + 2 * self.preset_options['message_x_padding'],
+                                          self.text_size[1] + 2 * self.preset_options['message_y_padding'])
         self.receiving: bool = receiving
         self.canvas: Image.Image = Image.new('RGBA', self.box_size)
         self.draw: ImageDraw.ImageDraw = draw
@@ -191,12 +199,12 @@ class MessageBox:
         if not self.receiving:
             with Pilmoji(self.canvas, source=AppleEmojiSource, emoji_position_offset=(2, 8),
                          emoji_scale_factor=1) as pilmoji:
-                pilmoji.text((self.preset_options['message_x_padding'], self.preset_options['message_y_padding']-10),
+                pilmoji.text((self.preset_options['message_x_padding'], self.preset_options['message_y_padding'] - 10),
                              self.message_text, fill=(255, 255, 255, 255), font=self.preset_options['message_font'])
         else:
             with Pilmoji(self.canvas, source=AppleEmojiSource, emoji_position_offset=(2, 8),
                          emoji_scale_factor=1) as pilmoji:
-                pilmoji.text((self.preset_options['message_x_padding'], self.preset_options['message_y_padding']-10),
+                pilmoji.text((self.preset_options['message_x_padding'], self.preset_options['message_y_padding'] - 10),
                              self.message_text, fill=(0, 0, 0, 255), font=self.preset_options['message_font'])
 
     def get_message_box_x(self, message_x_margin: int) -> int:
@@ -231,3 +239,51 @@ class MessageBox:
         if self._new_draw:
             del self.draw
             self._new_draw = False
+
+
+class MessageArea:
+    """
+    Rendering the messages in this area. Using MessageBox class and used in Capture class
+    """
+
+    def __init__(
+            self,
+            message_list: List[MessageBox],
+            scroll: Optional[float] = 1.0,
+            preset_options: Optional[Dict] = background_standard_options,
+            draw: Optional[ImageDraw.ImageDraw] = None,
+    ):
+        self.message_list: List[MessageBox] = message_list
+        self.scroll: float = scroll
+        self.preset_options: Dict = preset_options
+        self.draw: ImageDraw.ImageDraw = draw
+
+        self._new_draw: bool = False
+        self._total_message_height: int = self.get_total_message_height()
+        self.canvas: Image.Image = Image.new('RGBA', self.preset_options['message_area_size'])
+        self.add_messages()
+
+    def add_messages(self) -> None:
+        """
+        Draws the messages on the canvas
+        :return: None
+        """
+
+        y = -int(self.scroll * max(0, self._total_message_height - self.preset_options['message_area_size'][1])) + \
+            self.preset_options['message_y_margin']
+        print(y)
+        for message in self.message_list:
+            x = message.get_message_box_x(self.preset_options['message_x_margin'])
+            self.canvas.paste(message.canvas, (x, y), message.canvas)
+            y += message.box_size[1] + self.preset_options['message_y_margin']
+
+    def get_total_message_height(self) -> int:
+        """
+        Calculate the total height of messages, margins included.
+        :return: total height, int
+        """
+
+        h = self.preset_options['message_y_margin']
+        for message in self.message_list:
+            h += message.box_size[1] + self.preset_options['message_y_margin']
+        return int(h)

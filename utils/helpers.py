@@ -17,7 +17,8 @@ background_standard_options: Dict[str, Any] = {
     'message_radius': 50,
     'message_background_color_sending': '#0b5efd',
     'message_background_color_receiving': '#E0DEE6',
-    'message_first_y': 400
+    'message_first_y': 354,
+    'message_area_size': (1080, 1566)
 }
 
 
