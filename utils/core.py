@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 from pilmoji import Pilmoji, getsize
 from pilmoji.source import AppleEmojiSource
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 from os import PathLike
 from .helpers import background_standard_options, format_text_box
 
@@ -34,7 +34,6 @@ class Capture:
             conversation: List[Tuple[bool, str]],
             name: Optional[str] = 'Antoine🥰',
             time: Optional[str] = '21:48',
-            emoji_in_name: Optional[bool] = True,
             preset_options: Optional[Dict] = background_standard_options,
             draw: Optional[ImageDraw.ImageDraw] = None,
             message_area: Optional = None,
@@ -44,18 +43,35 @@ class Capture:
         self.conversation: List[Tuple[bool, str]] = conversation
         self.name: str = name
         self.time: str = time
-        self.emoji_in_name: bool = emoji_in_name
         self.preset_options: Dict = preset_options
         self.draw: ImageDraw.ImageDraw = draw
 
         self._new_draw: bool = False
+        self._generated: bool = False
         self.messages: List[MessageBox] = []
 
         self._import_messages()
         self.message_area: MessageArea = message_area
         self.canvas: Image.Image = Image.new('RGBA', (1080, 1920))
 
-    def add_background(self) -> None:
+    def generate(self, scroll: Optional[float] = 1.0) -> None:
+        """
+        Generates the picture
+        :param scroll: scroll value (0-1) (defaults to 1)
+        :return: None
+        """
+
+        if not self._generated:
+            self._add_background()
+            self._add_name()
+            self._add_avatar()
+            self._add_time()
+            self._add_messages(scroll)
+            self._generated = True
+        else:
+            print('capture already generated')
+
+    def _add_background(self) -> None:
         """
         Adds the background to the canvas
         :return: None
@@ -64,7 +80,7 @@ class Capture:
         with Image.open(self._base_path) as im:
             self.canvas.paste(im, (0, 0))
 
-    def add_avatar(self) -> None:
+    def _add_avatar(self) -> None:
         """
         Adds the avatar to the canvas
         :return: None
@@ -75,7 +91,7 @@ class Capture:
             profile_resized = im.resize(avatar_size)
             self.canvas.paste(profile_resized, background_standard_options['avatar_position'], profile_resized)
 
-    def add_name(self) -> None:
+    def _add_name(self) -> None:
         """
         Adds the name of the interlocutor
         :return: None
@@ -89,7 +105,7 @@ class Capture:
 
             pilmoji.text((x_pos, background_standard_options['name_y_position']), self.name, (0, 0, 0), font)
 
-    def add_time(self) -> None:
+    def _add_time(self) -> None:
         """
         Adds the time on the canvas
         :return: None
@@ -100,7 +116,7 @@ class Capture:
                        font=background_standard_options['time_font'], anchor='ms')
         self._close_draw()
 
-    def add_messages(self, scroll: Optional[float] = 1.0) -> None:
+    def _add_messages(self, scroll: Optional[float] = 1.0) -> None:
         """
         Print the already rendered messages on the canvas
         :return: None
@@ -112,6 +128,19 @@ class Capture:
             self.message_area = MessageArea(self.messages, scroll, self.preset_options)
 
         self.canvas.paste(self.message_area.canvas, (0, y), self.message_area.canvas)
+
+    def save(self, path: Union[PathLike, str], scroll: Optional[float] = 1.0) -> None:
+        """
+        Saves the capture into the specified path. Generate the capture if needed.
+        :param scroll: scroll value (0-1). Optional, defaults to 1 and used if not generated.
+        :param path: the path. PathLike object
+        :return: None
+        """
+
+        if not self._generated:
+            self.generate(scroll)
+
+        self.canvas.save(path)
 
     def _import_messages(self) -> None:
         """
@@ -287,3 +316,48 @@ class MessageArea:
         for message in self.message_list:
             h += message.box_size[1] + self.preset_options['message_y_margin']
         return int(h)
+
+
+class ScreenGenerator:
+    """
+    Main interface to generate multiple screenshots of one conversation. Uses the Capture class
+    """
+
+    def __init__(
+            self,
+            conversation: List[Tuple[bool, str]],
+            preset: Optional[Dict] = background_standard_options,
+            name: Optional[str] = 'Antoine🥰',
+            time: Optional[str] = '21:48',
+    ):
+        self.conversation: List[Tuple[bool, str]] = conversation
+        self.preset: Dict = preset
+        self.name: str = name
+        self.time: str = time
+        self.capture_list: List[Capture] = []
+
+        self._add_captures()
+
+    def _add_captures(self) -> None:
+        """
+        Adds captures to the capture list. Captures are not yet generated.
+        :return: None
+        """
+        for i in range(len(self.conversation)):
+            self.capture_list.append(Capture(
+                self.preset['background_path'],
+                self.preset['avatar_path'],
+                self.conversation[:i+1],
+                name=self.name,
+                time=self.time,
+                preset_options=self.preset
+            ))
+
+    def save_captures(self, path: str) -> None:
+        """
+        Saves all the capture in a given path
+        :return: None
+        """
+
+        for i, capture in enumerate(self.capture_list):
+            capture.save(path + '{:02d}'.format(i) + '.png')

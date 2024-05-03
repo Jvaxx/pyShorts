@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict, Any, List
 from PIL import ImageFont
 
@@ -15,10 +16,12 @@ background_standard_options: Dict[str, Any] = {
     'message_y_padding': 30,
     'message_y_margin': 20,
     'message_radius': 50,
-    'message_background_color_sending': '#0b5efd',
+    'message_background_color_sending': '#0080FF',
     'message_background_color_receiving': '#E0DEE6',
     'message_first_y': 354,
-    'message_area_size': (1080, 1566)
+    'message_area_size': (1080, 1566),
+    'background_path': Path('Ressources/base sms iphone.png'),
+    'avatar_path': Path('Ressources/profile default.png'),
 }
 
 
