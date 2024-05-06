@@ -1,2 +1,2 @@
-from .core import TextGeneration, TextToSpeech, VideoGenerator
-from .helpers import conversation_validation
+from .core import TextGeneration, TextToSpeechEleven, VideoGenerator
+from .helpers import conversation_validation, tts_settings

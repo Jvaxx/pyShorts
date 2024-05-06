@@ -4,6 +4,8 @@ from urllib.parse import urlencode
 import httplib2
 import movis as mv
 from utils import ScreenGenerator
+from .helpers import tts_settings
+import requests
 
 
 class TextGeneration:
@@ -35,7 +37,68 @@ class TextGeneration:
         return res
 
 
-class TextToSpeech:
+class TextToSpeechEleven:
+    """
+    TTS Generator using ElevenLabs
+    """
+
+    def __init__(
+            self,
+            input_text: str
+    ):
+        self.input_text: str = input_text
+        self._request_made: bool = False
+        self._response: Union[requests.Response, None] = None
+
+    def make_request(self) -> None:
+        """
+        generates a request
+        :return: None
+        """
+
+        if self._request_made:
+            print('TTSEleven ERROR: make_request called while it has already been called on this object.')
+        else:
+            headers = {
+                "Accept": "audio/mpeg",
+                "Content-Type": "application/json",
+                "xi-api-key": tts_settings['eleven_api_key']
+            }
+            data = {
+                "text": self.input_text,
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.5
+                }
+            }
+            # print('REQUEST: ' + tts_settings['eleven_api_url'] + tts_settings['voice_id'])
+            # print('DATA:', data)
+            # print('HEADERS:', headers)
+            self._response = requests.post(tts_settings['eleven_api_url'] + tts_settings['voice_id'], json=data,
+                                           headers=headers)
+            print('TTSEleven INFO: request sent')
+            if self._response.status_code != 200:
+                print('TTSEleven ERROR: request failed, error: ', self._response.status_code)
+
+    def generate_audio(self, path: str) -> None:
+        """
+        Generates audio file
+        :param path: path to the audio file including the extension .mp3
+        :return: None
+        """
+
+        if not self._request_made:
+            self.make_request()
+        with open(path, 'wb') as f:
+            for chunk in self._response.iter_content(chunk_size=1024):
+                if chunk:
+                    f.write(chunk)
+
+        print('TTSEleven INFO: audio written')
+
+
+class TextToSpeechMaryTTS:
     """
     TTS Generator
     """
@@ -103,8 +166,9 @@ class VideoGenerator:
         """
 
         for i, replica in enumerate(self.conversation):
-            generator = TextToSpeech(replica[1])
-            generator.generate_audio(path + 'aud{:02d}'.format(i) + '.wav')
+            print('conv: ' + replica[1])
+            generator = TextToSpeechEleven(replica[1])
+            generator.generate_audio(path + 'aud{:02d}'.format(i) + '.mp3')
             print('generated audio ' + str(i))
         self._audio_files_generated = True
 
@@ -119,7 +183,7 @@ class VideoGenerator:
             self.generate_audio_files(path)
 
         for i in range(len(self.conversation)):
-            file_path = path + f"aud{'{:02d}'.format(i)}.wav"
+            file_path = path + f"aud{'{:02d}'.format(i)}.mp3"
             self._audio_layers.append(mv.layer.media.Audio(file_path))
 
     def get_duration(self, pause_duration: Optional[float] = 1.0) -> float:
@@ -151,8 +215,8 @@ class VideoGenerator:
 
         time: float = 0.0
         for i, image_layer in enumerate(self._image_layers):
-            scene.add_layer(image_layer, offset=time, end_time=time+self._audio_layers[i].duration+pause_duration)
+            scene.add_layer(image_layer, offset=time, end_time=time + self._audio_layers[i].duration + pause_duration)
             scene.add_layer(self._audio_layers[i], offset=time)
-            time += self._audio_layers[i].duration+pause_duration
+            time += self._audio_layers[i].duration + pause_duration
 
         scene.write_video(path + 'resultat.mp4')

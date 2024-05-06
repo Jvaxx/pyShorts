@@ -1,6 +1,12 @@
 from typing import List
 
 
+tts_settings = {
+    'eleven_api_key': '814767ed0e23c7bec4a65b85562fa6e2',
+    'voice_id': 'HDc7042zGcc1SdpT2m1U',
+    'eleven_api_url': 'https://api.elevenlabs.io/v1/text-to-speech/'
+}
+
 def conversation_validation(conversation: List) -> bool:
     """
     Visualize the conversation before validation
@@ -23,5 +29,6 @@ def conversation_validation(conversation: List) -> bool:
         inp = True
 
     return inp
+
 
 
