@@ -1,31 +1,43 @@
 from utils import Capture, ScreenGenerator
-from TextGen import TextGeneration, conversation_validation, VideoGenerator, TextToSpeechEleven
+from TextGen import TextGeneration, conversation_validation, VideoGenerator, TextToSpeechEleven, TextGenerationOllama, BatchTextGenerator
 from pathlib import Path
 
 
 conversation = [
-    (False, 'Coucou!'),
-    (True, 'Comment vas-tu?'),
-    (False, 'Très bien, et toi, ça roule? 🤨')
-    # (True, 'Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the \
-    #        industry s standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled'),
+    (False, 'Eh, tu connais l\'histoire du petit dej ?'),
+    (True, 'Euh non 🤨'),
+    (False, 'Pas de bol... 🥣'),
+    (True, 'Pff... C\'est pas drôle.'),
+    (False, 'Et tu connais l\'histoire du pingouin qui respire par les fesses ? 🐧'),
+    (True, 'Laisse moi deviner, il s\'assoit et il meurt ?'),
+    (False, 'Ah voila, tu commences à comprendre!'),
+    (False, 'Eh, tu connais l\'histoire du petit dej ?'),
+    (True, 'Euh non 🤨'),
+    #(False, 'Pas de bol... 🥣'),
+    #(True, 'Pff... C\'est pas drôle.'),
+    #(False, 'Et tu connais l\'histoire du pingouin qui respire par les fesses ? 🐧'),
+    #(True, 'Laisse moi deviner, il s\'assoit et il meurt ?'),
+    #(False, 'Ah voila, tu commences à comprendre!'),
 ]
 
 
-# generator = TextGeneration()
-# res = []
-# validated = False
-# while not validated:
-#     generator.generate_text()
-#     res = generator.format_text()
-#     validated = conversation_validation(res)
-# del generator
-# print(res)
+generator = BatchTextGenerator()
+stop = False
+while not stop:
+    theme = input("thème: ")
+    generator.trial_generation(theme)
+    inp = input("Arrêter ici? (o/n): ")
+    if inp in ["o", "O", "y","Y"]:
+        stop = True
 
-vidGen = VideoGenerator('lenom', conversation)
-vidGen.generate_video(pause_duration=0.3)
+for i, convo in enumerate(generator.conversations):
+    vidGen = VideoGenerator('vid' + str(i), convo)
+    vidGen.generate_video(pause_duration=0.7)
+
+# vidGen = VideoGenerator('vid0', conversation)
+# vidGen.generate_video(pause_duration=0.7, use_generated_captures=True, use_generated_audios=True)
 
 
-# tts = TextToSpeechEleven('Coucou, tu veux savoir un truc super drôle?')
-# tts.generate_audio('./Generated/testie.mp3')
 
+# tg = TextGenerationOllama("l'échec amoureux")
+# print(tg.generate_text())
