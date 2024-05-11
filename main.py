@@ -1,7 +1,6 @@
 from utils import Capture, ScreenGenerator
-from TextGen import TextGeneration, conversation_validation, VideoGenerator, TextToSpeechEleven, TextGenerationOllama, BatchTextGenerator
-from pathlib import Path
-
+from TextGen import VideoGenerator, BatchTextGenerator
+import time
 
 conversation = [
     (False, 'Eh, tu connais l\'histoire du petit dej ?'),
@@ -32,7 +31,7 @@ while not stop:
 
 for i, convo in enumerate(generator.conversations):
     vidGen = VideoGenerator('vid' + str(i), convo)
-    vidGen.generate_video(pause_duration=0.7)
+    vidGen.generate_video(pause_duration=0)
 
 # vidGen = VideoGenerator('vid0', conversation)
 # vidGen.generate_video(pause_duration=0.7, use_generated_captures=True, use_generated_audios=True)

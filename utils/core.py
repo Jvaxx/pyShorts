@@ -300,7 +300,7 @@ class MessageArea:
 
         y = -int(self.scroll * max(0, self._total_message_height - self.preset_options['message_area_size'][1])) + \
             self.preset_options['message_y_margin']
-        print(y)
+        print(f'\rMessageArea INFO: generation de l\'image: {len(self.message_list)}', end="")
         for message in self.message_list:
             x = message.get_message_box_x(self.preset_options['message_x_margin'])
             self.canvas.paste(message.canvas, (x, y), message.canvas)

@@ -1,3 +1,4 @@
+import os
 import random
 from llama_cpp import Llama
 from typing import List, Optional, Union, Tuple
@@ -103,16 +104,12 @@ class TextToSpeechEleven:
                     "style": 0.5
                 }
             }
-            # print('REQUEST: ' + tts_settings['eleven_api_url'] + tts_settings['voice_id'])
-            # print('DATA:', data)
-            # print('HEADERS:', headers)
             res = send_request(tts_settings['eleven_api_url'] + tts_settings['voice_id'], json=data,
                                headers=headers)
-            print('TTSEleven INFO: request sent')
             if res.status_code != 200:
                 print('TTSEleven ERROR: request failed, error: ', res.status_code)
                 raise Exception()
-            time.sleep(8)
+            time.sleep(1)
             return res
 
     def generate_audio(self, path: str) -> None:
@@ -199,7 +196,6 @@ class VideoGenerator:
         """
 
         for i, replica in enumerate(self.conversation):
-            print('conv: ' + replica[1])
             generator = TextToSpeechEleven(replica[1])
             generator.generate_audio(path + f"{self.video_name}_aud_{'{:02d}'.format(i)}.mp3")
             print('VideoGenerator INFO: generated audio file ' + str(i))
@@ -253,21 +249,19 @@ class VideoGenerator:
         :param use_background_video: use an animated background
         :return: None
         """
+        os.mkdir(os.path.join(path, self.video_name))
         print('VideoGenerator INFO: generating image layers')
-        self.generate_image_layers(path, use_generated_captures=use_generated_captures)
-        print('VideoGenerator INFO: generating audio layers')
+        self.generate_image_layers(path + self.video_name + '/', use_generated_captures=use_generated_captures)
+        print('\nVideoGenerator INFO: generating audio layers')
         self._audio_files_generated = use_generated_audios
-        self.generate_audio_layers(path)
-        time.sleep(2)
+        self.generate_audio_layers(path + self.video_name + '/')
         total_duration = self.get_duration(pause_duration)
         scene = mv.layer.Composition(size=(1080, 1920), duration=total_duration)
         super_scene = mv.layer.Composition(size=(1080, 1920), duration=total_duration)
 
         if use_background_video:
             bg_video = mv.layer.media.Video('./Ressources/satisfying background.mp4', audio=False)
-            super_scene.add_layer(bg_video, scale=2.666, offset=-int(random.randrange(10, 60)))
-
-        print('audio layers: ', self._audio_layers)
+            super_scene.add_layer(bg_video, scale=2.666, offset=-int(random.randrange(10, 120)))
 
         time_stamp: float = 0.0
         for i, image_layer in enumerate(self._image_layers):

@@ -44,7 +44,6 @@ def send_request(url, json, headers):
     while wait:
         print('TextGenHelper send_request INFO: Sending request...')
         response = requests.post(url, json=json, headers=headers)
-        print(response.status_code)
         if response.status_code == 429:
             print('TextGenHelper send_request ERROR: 429, retrying in 10s...')
             time.sleep(10)
@@ -52,7 +51,7 @@ def send_request(url, json, headers):
             print('TextGenHelper send_request ERROR:', response.status_code)
             raise Exception
         else:
-            print('TextGenHelper send_request INFO: Request successfull (200)')
+            # print('TextGenHelper send_request INFO: Request successfull (200)')
             wait = False
 
     return response
