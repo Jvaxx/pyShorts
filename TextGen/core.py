@@ -6,7 +6,7 @@ from urllib.parse import urlencode
 import httplib2
 import movis as mv
 from utils import ScreenGenerator
-from .helpers import tts_settings, send_request, generate_rotation_frames, generate_scale_frames, send_request_stream, format_text, conversation_validation
+from .helpers import tts_settings, send_request, generate_rotation_frames, generate_scale_frames, send_request_stream, format_text, conversation_validation, save_characters
 import requests
 import time
 
@@ -104,7 +104,7 @@ class TextToSpeechEleven:
                     "style": 0.5
                 }
             }
-            res = send_request(tts_settings['eleven_api_url'] + tts_settings['voice_id'], json=data,
+            res = send_request(tts_settings['eleven_api_url'] + tts_settings['voice_id'], json_data=data,
                                headers=headers)
             if res.status_code != 200:
                 print('TTSEleven ERROR: request failed, error: ', res.status_code)
@@ -199,6 +199,7 @@ class VideoGenerator:
             generator = TextToSpeechEleven(replica[1])
             generator.generate_audio(path + f"{self.video_name}_aud_{'{:02d}'.format(i)}.mp3")
             print('VideoGenerator INFO: generated audio file ' + str(i))
+        save_characters("./data/stat.txt", self.conversation)
         self._audio_files_generated = True
 
     def generate_audio_layers(self, path: str) -> None:

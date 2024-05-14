@@ -1,5 +1,6 @@
 import json
 import time
+from datetime import date
 from typing import List, Tuple, Optional
 import requests
 import numpy as np
@@ -38,12 +39,47 @@ def conversation_validation(conversation: List) -> bool:
     return inp
 
 
-def send_request(url, json, headers):
+def character_counter_string(text: str) -> int:
+    """
+    Counts the number of characters in a string
+    :param text: the text to count
+    :return: number of character
+    """
+    return len(text)
+
+
+def conversation_character_counter(conv: List[Tuple[bool, str]]) -> int:
+    """
+    Returns the number of characters of a conversation
+    :param conv: the conversation
+    :return: number of character
+    """
+
+    total = 0
+    for replica in conv:
+        total += character_counter_string(replica[1])
+    return total
+
+
+def save_characters(path: str, conv: List[Tuple[bool, str]]) -> None:
+    """
+    save the number of char of a conversation in a file
+    :param path: where to save
+    :param conv: conversation
+    :return: none
+    """
+
+    to_save = {"date": date.today().isoformat(), "length": conversation_character_counter(conv)}
+    with open(path, "a") as f:
+        f.write(json.dumps(to_save) + "\n")
+
+
+def send_request(url, json_data, headers):
     response = None
     wait = True
     while wait:
         print('TextGenHelper send_request INFO: Sending request...')
-        response = requests.post(url, json=json, headers=headers)
+        response = requests.post(url, json=json_data, headers=headers)
         if response.status_code == 429:
             print('TextGenHelper send_request ERROR: 429, retrying in 10s...')
             time.sleep(10)
