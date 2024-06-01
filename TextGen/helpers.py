@@ -1,9 +1,10 @@
 import json
 import time
 from datetime import date
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union, Dict
 import requests
 import numpy as np
+
 
 
 tts_settings = {
@@ -61,17 +62,42 @@ def conversation_character_counter(conv: List[Tuple[bool, str]]) -> int:
     return total
 
 
-def save_characters(path: str, conv: List[Tuple[bool, str]]) -> None:
+def save_characters(path: str, conv: List[Tuple[bool, str]], conv_uuid: Union[str, int], intro_message: Optional[Union[None, str]] = None) -> None:
     """
     save the number of char of a conversation in a file
+    :param conv_uuid: uuid of conversation. If it's not relevant, use 0 instead.
+    :param intro_message: the string of the intro image. If left empty it will not be used. Defaults to None.
     :param path: where to save
     :param conv: conversation
     :return: none
     """
 
-    to_save = {"date": date.today().isoformat(), "length": conversation_character_counter(conv)}
+    intro_length = 0
+    if intro_message: intro_length = character_counter_string(intro_message)
+    to_save = {"date": date.today().isoformat(), "length": conversation_character_counter(conv) + intro_length, "uuid": conv_uuid}
     with open(path, "a") as f:
         f.write(json.dumps(to_save) + "\n")
+
+
+def read_stats(path: str) -> List[Dict]:
+    """
+    Reads the stats (used to verify uuid of conversation in order to not use them twice)
+    :param path: path to stats file
+    :return: list of stats
+    """
+    res = []
+    with open(path, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+        for line in lines:
+            res.append(json.loads(line))
+    return res
+
+
+def is_used(stats: List[Dict], id: Union[str, int]) -> bool:
+    for stat in stats:
+        if stat["uuid"] == id:
+            return True
+    return False
 
 
 def send_request(url, json_data, headers):
@@ -101,22 +127,29 @@ def send_request_stream(url: str, json_data: dict):
         for line in res.iter_lines():
             if line:
                 response_text += json.loads(line.decode("UTF-8"))["response"]
-    print("TextGenHelper send_request_stream INFO: request done.")
+    # print("TextGenHelper send_request_stream INFO: request done.")
     return response_text
 
 
-def format_text(text_to_format: str) -> List:
-    split = text_to_format.split('\n')[1:]
+def format_text(text_to_format: Union[str, List]) -> List:
+    if isinstance(text_to_format, str):
+        split = text_to_format.split('\n')[1:]
+    else:
+        split = text_to_format
     res = []
 
     for line in split:
         if line[:2] == 'A:':
             res.append((False, line[3:]))
+        elif line[:3] == 'A :':
+            res.append((False, line[4:]))
         elif line[:2] == 'B:':
             res.append((True, line[3:]))
+        elif line[:3] == 'B :':
+            res.append((True, line[4:]))
         else:
             print('ERROR: format text impossible')
-            print(line[:2])
+            print(line[:3])
     return res
 
 

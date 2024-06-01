@@ -22,6 +22,10 @@ background_standard_options: Dict[str, Any] = {
     'message_area_size': (1080, 1566),
     'background_path': Path('Ressources/base sms iphone.png'),
     'avatar_path': Path('Ressources/profile default.png'),
+    'intro_background_directory': 'Ressources/intro backgrounds/',
+    'intro_font': ImageFont.truetype(font='utils/fonts/OpenSans-Bold.ttf', size=90),
+    'intro_text_background_padding': 10,
+    'intro_text_background_radius': 20
 }
 
 

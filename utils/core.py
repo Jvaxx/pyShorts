@@ -1,3 +1,6 @@
+import os
+import random
+
 from PIL import Image, ImageDraw
 from pilmoji import Pilmoji, getsize
 from pilmoji.source import AppleEmojiSource
@@ -5,6 +8,71 @@ from typing import List, Tuple, Optional, Dict, Union
 from os import PathLike
 from .helpers import background_standard_options, format_text_box
 
+
+class Intro_Image:
+    """
+    Interface for rendering intro image
+    """
+
+    def __init__(
+            self,
+            intro_text: str,
+            preset_options: Optional[Dict] = background_standard_options
+    ) -> None:
+        self.preset_options = preset_options
+        self.intro_text = format_text_box(intro_text, 1000, font=self.preset_options['intro_font'])
+        self.background_path: str = preset_options['intro_background_directory']
+        self.canvas: Image.Image = Image.new('RGB', (1080, 1920))
+        self.draw: ImageDraw.Draw = None
+
+        self.add_background()
+        self.draw_text()
+
+    def add_background(self):
+        random_image = random.choice(os.listdir(self.background_path))
+        with Image.open(self.background_path + random_image) as im:
+            self.canvas.paste(im)
+
+    def draw_text(self):
+
+        self._create_draw()
+        text_size = getsize(self.intro_text, font=self.preset_options['intro_font'])
+        self.draw.rounded_rectangle(
+            [540 - text_size[0]/2 - self.preset_options['intro_text_background_padding'],
+             960 - text_size[1]/2 - self.preset_options['intro_text_background_padding'],
+             540 + text_size[0]/2 + self.preset_options['intro_text_background_padding'],
+             960 + text_size[1]/2 + self.preset_options['intro_text_background_padding']],
+            radius=self.preset_options['intro_text_background_radius'],
+            fill=(255, 255, 255, 0)
+        )
+        self._close_draw()
+
+        with Pilmoji(self.canvas, source=AppleEmojiSource, emoji_position_offset=(2, 8),
+                     emoji_scale_factor=1) as pilmoji:
+            pilmoji.text((540, 930), self.intro_text, fill=(0, 0, 0, 255), font=self.preset_options['intro_font'], anchor='md', align='center', stroke_fill=(255,255,255,255), stroke_width=10)
+
+    def save(self, path: str):
+        self.canvas.save(path)
+
+    def _create_draw(self) -> None:
+        """
+        Create a draw context
+        :return: None
+        """
+
+        if self.draw is None:
+            self.draw = ImageDraw.Draw(self.canvas, 'RGBA')
+            self._new_draw = True
+
+    def _close_draw(self) -> None:
+        """
+        Close the Draw context
+        :return: None
+        """
+
+        if self._new_draw:
+            del self.draw
+            self._new_draw = False
 
 class Capture:
     """
