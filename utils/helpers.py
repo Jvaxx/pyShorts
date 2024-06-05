@@ -1,3 +1,4 @@
+import random
 from pathlib import Path
 from typing import Dict, Any, List
 from PIL import ImageFont
@@ -25,8 +26,28 @@ background_standard_options: Dict[str, Any] = {
     'intro_background_directory': 'Ressources/intro backgrounds/',
     'intro_font': ImageFont.truetype(font='utils/fonts/OpenSans-Bold.ttf', size=90),
     'intro_text_background_padding': 10,
-    'intro_text_background_radius': 20
+    'intro_text_background_radius': 20,
+    'name_list_path': 'Ressources/names.txt'
 }
+
+
+def choose_random_name(path: str) -> str:
+    """
+    Returns a name chosen randomly from a text file
+    :param path: the path to the text file containing all the names
+    :return: the name
+    """
+    with open(path, 'r', encoding='utf-8') as f:
+        names = f.readlines()
+        return random.choice(names)
+
+
+def get_crop_region(size):
+    x0 = (size[0]//2) - 540
+    x1 = (size[0]//2) + 540
+    y0 = (size[1]//2) - 960
+    y1 = (size[1]//2) + 960
+    return x0, y0, x1, y1
 
 
 def format_text_box(text: str, max_width: int, font: ImageFont.ImageFont) -> str:

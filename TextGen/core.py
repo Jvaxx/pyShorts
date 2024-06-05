@@ -1,34 +1,11 @@
-import json
 import os
 import random
-from llama_cpp import Llama
-from typing import List, Optional, Union, Tuple
 import movis as mv
 from utils import ScreenGenerator, Intro_Image
 from .helpers import *
 import requests
 import time
 import uuid
-
-
-class TextGeneration:
-    """
-    Uses llama.cpp local
-    """
-    def __init__(self):
-        self.prompt: str = 'Deux amis s\'échangent des messages courts. La converstion est très courte (6 messages au maximum). Le ton est chaleureux. La conversation est drôle. Il y a une blague. Pas de traduction de la conversatoin. Pas d\'explication de la conversation. \n'
-        self.first_messages: str = 'A: Salut!\nB: Qu\'est-ce que tu veux encore 🤨\nA: '
-        self.model = Llama('models/Meta-Llama-3-8B-Instruct-Q6_K.gguf', n_gpu_layers=-1, chat_format='llama-3')
-        self.result = None
-
-    def generate_text(self):
-        self.result = self.model(self.prompt + self.first_messages, max_tokens=None, echo=True)
-
-    def get_raw_text(self):
-        return self.result['choices'][0]['text']
-
-    def format_text(self) -> List:
-        return format_text(self.result['choices'][0]['text'])
 
 
 class TextGenerationOllama:
@@ -128,49 +105,6 @@ class TextToSpeechEleven:
         print('TTSEleven INFO: audio written')
 
 
-# class TextToSpeechMaryTTS:
-#     """
-#     TTS Generator using marytts. Absolute trash quality. Use of tts eleven recommended
-#     """
-#
-#     def __init__(
-#             self,
-#             input_text: str,
-#             mary_host: Optional[str] = 'localhost',
-#             mary_port: Optional[Union[str, int]] = '59125'
-#     ):
-#         self.input_text: str = input_text
-#         self.mary_host: str = mary_host
-#         self.mary_port: str = str(mary_port)
-#
-#     def generate_audio(self, path: str) -> None:
-#         """
-#         Generate the TTS and saves it
-#         :param path: path to audio
-#         :return: None
-#         """
-#
-#         query_hash = {"INPUT_TEXT": self.input_text,
-#                       "INPUT_TYPE": "TEXT",  # Input text
-#                       "LOCALE": "fr",
-#                       "VOICE": "upmc-pierre-hsmm",  # Voice informations  (need to be compatible)
-#                       "OUTPUT_TYPE": "AUDIO",
-#                       "AUDIO": "WAVE",  # Audio informations (need both)
-#                       }
-#         query = urlencode(query_hash)
-#
-#         h_mary = httplib2.Http()
-#         resp, content = h_mary.request("http://%s:%s/process?" % (self.mary_host, self.mary_port), "POST", query)
-#
-#         if resp["content-type"] == "audio/x-wav":
-#             # Write the wav file
-#             f = open(path, "wb")
-#             f.write(content)
-#             f.close()
-#         else:
-#             Exception(content)
-
-
 class VideoGenerator:
     """
     Main video rendering interface
@@ -240,10 +174,10 @@ class VideoGenerator:
         if not use_generated_captures:
             screen_gen = ScreenGenerator(self.conversation)
             screen_gen.save_captures(path + f'{self.video_name}_capt_')
-            if self.intro_message:
-                intro_gen = Intro_Image(self.intro_message)
-                intro_gen.save(path + f"{self.video_name}_capt_intro.png")
-                self._image_layers.append(mv.layer.media.Image(path + f"{self.video_name}_capt_intro.png"))
+        if self.intro_message:
+            intro_gen = Intro_Image(self.intro_message)
+            intro_gen.save(path + f"{self.video_name}_capt_intro.png")
+            self._image_layers.append(mv.layer.media.Image(path + f"{self.video_name}_capt_intro.png"))
         for i in range(len(self.conversation)):
             file_path = path + f"{self.video_name}_capt_{'{:02d}'.format(i)}.png"
             self._image_layers.append(mv.layer.media.Image(file_path))
@@ -251,17 +185,19 @@ class VideoGenerator:
     def generate_video(
             self,
             path: Optional[str] = './Generated/',
-            pause_duration: Optional[float] = 1.0,
-            background_music: Optional[Union[None, str]] = tts_settings['default_background_music'] + str(int(random.randint(1, 2))),
+            pause_duration: Optional[float] = 0,
+            background_music_file: Optional[Union[None, str]] = tts_settings['background_music_folder'],
+            background_music_level: Optional[int] = -10,
             use_generated_audios: Optional[bool] = False,
             use_generated_captures: Optional[bool] = False,
-            use_background_video: Optional[bool] = True,
+            use_background_video: Optional[bool] = True
     ):
         """
         Generates the video
+        :param background_music_level: level of background music in decibels. Defaults to -10.
         :param path: the path to the result folder
         :param pause_duration: delay btw each audio files
-        :param background_music: background music name (folder: Ressources/sounds)
+        :param background_music_file: background music name folder. To not use music, set the param to None.
         :param use_generated_audios: if true, there will not be any TTS generation.
         :param use_generated_captures: if true, there will not be any capture generation.
         :param use_background_video: use an animated background
@@ -299,9 +235,9 @@ class VideoGenerator:
 
             time_stamp += self._audio_layers[i].duration + pause_duration
 
-        if background_music:
-            bg_music_layer = mv.layer.media.Audio('Ressources/sounds/' + background_music + '.mp3')
-            scene_message.add_layer(bg_music_layer, end_time=total_duration, audio_level=-10, offset=-0.5)
+        if background_music_file:
+            bg_music_layer = mv.layer.media.Audio(background_music_file + random.choice(os.listdir(background_music_file)))
+            scene_message.add_layer(bg_music_layer, end_time=total_duration, audio_level=background_music_level, offset=-0.5)
 
         if not use_background_video:
             super_scene.add_layer(intro_scene, name='intro')
@@ -334,7 +270,7 @@ class BatchVideoGeneratorFromFile:
             self,
             conv_file: Optional[str] = './Ressources/conversations.txt'
     ):
-        self.conv_file: Optional[str] = conv_file
+        self.conv_file: str = conv_file
 
     def add_conversation(self):
         print("Enter/Paste your content.")
@@ -368,9 +304,9 @@ class BatchVideoGeneratorFromFile:
         with open(self.conv_file, 'w', encoding="utf-8") as f:
             json.dump(conv_list, f, ensure_ascii=False)
 
-    def generate_videos(self, max: int = 10):
+    def generate_videos(self, max: int = 10, **kwargs):
         stats = read_stats('./data/stat.txt')
-        conversations_data = read_stats('./Ressources/conversations.txt')[0]
+        conversations_data = read_stats(self.conv_file)[0]
 
         count = 0
         conv_num = 0
@@ -381,6 +317,6 @@ class BatchVideoGeneratorFromFile:
             conv_data = conversations_data[conv_num]
             if not is_used(stats, conv_data["uuid"]):
                 vidGen = VideoGenerator("vid"+str(count), conv_data["conversation"], intro_message=conv_data["intro"], conversation_uuid=conv_data["uuid"])
-                vidGen.generate_video()
+                vidGen.generate_video(**kwargs)
                 count += 1
             conv_num += 1

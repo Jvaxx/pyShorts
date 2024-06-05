@@ -1,5 +1,5 @@
 from TextGen import VideoGenerator, BatchTextGenerator, BatchVideoGeneratorFromFile, read_stats
-from utils import Intro_Image
+from utils import Intro_Image, choose_random_name
 import json
 
 conversation = [
@@ -19,15 +19,6 @@ conversation = [
     # (False, 'Ah voila, tu commences à comprendre!'),
 ]
 
-# test_batch = [{"intro": "Heyy 🥰", "conversation": conversation}, {"intro": None, "conversation": conversation}]
-# with open('testie.txt', 'w', encoding='utf-8') as f:
-#     json.dump(test_batch, f, ensure_ascii=False)
-#
-# with open('testie.txt', 'r', encoding='utf-8') as f:
-#     data = json.load(f)
-#
-# print(data)
-
 
 # generator = BatchTextGenerator()
 # stop = False
@@ -44,9 +35,9 @@ conversation = [
 
 b = BatchVideoGeneratorFromFile()
 # b.add_conversation()
-b.generate_videos()
+b.generate_videos(background_music_level=-15)
 
 
 
-# vidGen = VideoGenerator('vid0', conversation, intro_message="POV: Je suis folle de lui")
+# vidGen = VideoGenerator('vid0', conversation, intro_message="POV: Je l'invite chez moi le soir")
 # vidGen.generate_video(pause_duration=0.7, use_generated_captures=False, use_generated_audios=True)

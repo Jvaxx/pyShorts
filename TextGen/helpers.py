@@ -11,7 +11,7 @@ tts_settings = {
     'eleven_api_key': '814767ed0e23c7bec4a65b85562fa6e2',
     'voice_id': 'EmZGlxI7QPvCEMOkFhB9',
     'eleven_api_url': 'https://api.elevenlabs.io/v1/text-to-speech/',
-    'default_background_music': 'funny_music',
+    'background_music_folder': 'Ressources/sounds/',
     'end_delay': 3.0,
 }
 
@@ -24,11 +24,10 @@ def conversation_validation(conversation: List) -> bool:
     """
 
     for replica in conversation:
-        pr = ''
         if replica[0]:
-            pr += 'Personne 2: '
+            pr = 'Personne 2: '
         else:
-            pr += 'Personne 1: '
+            pr = 'Personne 1: '
         print(pr + replica[1])
 
     inp = False

@@ -1,12 +1,11 @@
 import os
 import random
-
 from PIL import Image, ImageDraw
 from pilmoji import Pilmoji, getsize
 from pilmoji.source import AppleEmojiSource
 from typing import List, Tuple, Optional, Dict, Union
 from os import PathLike
-from .helpers import background_standard_options, format_text_box
+from .helpers import background_standard_options, format_text_box, choose_random_name, get_crop_region
 
 
 class Intro_Image:
@@ -30,8 +29,10 @@ class Intro_Image:
 
     def add_background(self):
         random_image = random.choice(os.listdir(self.background_path))
-        with Image.open(self.background_path + random_image) as im:
-            self.canvas.paste(im)
+        print(random_image)
+        im = self.resize_image(random_image)
+        self.canvas.paste(im)
+
 
     def draw_text(self):
 
@@ -53,6 +54,21 @@ class Intro_Image:
 
     def save(self, path: str):
         self.canvas.save(path)
+
+    def resize_image(self, image_name):
+        with Image.open(self.background_path + image_name) as im:
+            original_size = im.size
+            if original_size[0]/original_size[1] < 9/16:  # image trop fine
+                scale = 1080/original_size[0]
+            else:  # trop large
+                scale = 1920/original_size[1]
+
+            # resize
+            resized = im.resize((int(scale*original_size[0]), int(scale*original_size[1])))
+
+        new_size = resized.size
+        cropped = resized.crop(get_crop_region(new_size))
+        return cropped
 
     def _create_draw(self) -> None:
         """
@@ -403,6 +419,9 @@ class ScreenGenerator:
         self.name: str = name
         self.time: str = time
         self.capture_list: List[Capture] = []
+
+        if self.name == 'Antoine🥰' and self.preset['name_list_path']:
+            self.name = choose_random_name(self.preset['name_list_path'])
 
         self._add_captures()
 
